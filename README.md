@@ -19,3 +19,33 @@
    ```
 
 Бот поддерживает команды `/start` и `/trial`, навигацию по меню, выдачу конфигураций из provisioner и создание тикетов в поддержку.
+
+## Provisioner API
+
+В репозитории также есть FastAPI‑сервис `provisioner`, отвечающий за выдачу VPN‑конфигураций. Он управляет метаданными узлов, пулом ключей, взаимодействует с WireGuard (через `wgctrl`), OpenVPN (easy-rsa), Amnezia CLI и загружает файлы/QR в S3.
+
+### Переменные окружения
+
+```
+DATABASE_URL=sqlite:///./provisioner.db
+S3_BUCKET=bucket
+S3_ACCESS_KEY=key
+S3_SECRET_KEY=secret
+S3_REGION=us-east-1
+MAX_DEVICES_PER_USER=3
+```
+
+### Запуск
+
+```
+python -m provisioner.main
+```
+
+Основные эндпоинты:
+
+* `POST /provision` — выдача нового устройства, с генерацией QR и ссылок на файлы в S3.
+* `POST /revoke` — отзыв и освобождение ключа.
+* `POST /switch_node` — переключение узла.
+* `POST /stats/peers` — обновление статистики активных пиров.
+* `GET /nodes` — список доступных узлов.
+* `GET /metrics` — метрики Prometheus, дополнительно события отправляются в StatsD.
