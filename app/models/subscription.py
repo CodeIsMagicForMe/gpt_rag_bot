@@ -1,9 +1,9 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import Boolean, Column, DateTime, Enum as PgEnum, ForeignKey, Integer
-from sqlalchemy.orm import relationship
-
-from app.db.base import Base
+from typing import List
 
 
 class SubscriptionStatus(str, Enum):
@@ -12,21 +12,19 @@ class SubscriptionStatus(str, Enum):
     EXPIRED = "expired"
 
 
-class Subscription(Base):
-    __tablename__ = "subscriptions"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
-    status = Column(PgEnum(SubscriptionStatus), default=SubscriptionStatus.ACTIVE, nullable=False)
-    start_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    end_date = Column(DateTime, nullable=False)
-    grace_until = Column(DateTime, nullable=True)
-    trial_end = Column(DateTime, nullable=True)
-    auto_renew = Column(Boolean, default=True, nullable=False)
-    next_billing_at = Column(DateTime, nullable=True)
-    last_payment_id = Column(Integer, ForeignKey("payments.id"), nullable=True)
-
-    user = relationship("User", back_populates="subscriptions")
-    plan = relationship("Plan", back_populates="subscriptions")
-    payments = relationship("Payment", back_populates="subscription")
+@dataclass
+class Subscription:
+    id: int | None = None
+    user_id: int | None = None
+    plan_id: int | None = None
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    start_date: datetime = field(default_factory=datetime.utcnow)
+    end_date: datetime = field(default_factory=datetime.utcnow)
+    grace_until: datetime | None = None
+    trial_end: datetime | None = None
+    auto_renew: bool = True
+    next_billing_at: datetime | None = None
+    last_payment_id: int | None = None
+    user: "User" | None = None
+    plan: "Plan" | None = None
+    payments: List["Payment"] = field(default_factory=list)

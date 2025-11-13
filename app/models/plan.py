@@ -1,19 +1,17 @@
-from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.orm import relationship
+from __future__ import annotations
 
-from app.db.base import Base
+from dataclasses import dataclass, field
+from typing import List
 
 
-class Plan(Base):
-    __tablename__ = "plans"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    duration_days = Column(Integer, nullable=False, default=30)
-    price_cents = Column(Integer, nullable=False)
-    grace_period_days = Column(Integer, default=3, nullable=False)
-    trial_days = Column(Integer, default=0, nullable=False)
-    auto_renew = Column(Boolean, default=True, nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-
-    subscriptions = relationship("Subscription", back_populates="plan")
+@dataclass
+class Plan:
+    id: int | None = None
+    name: str = ""
+    duration_days: int = 30
+    price_cents: int = 0
+    grace_period_days: int = 3
+    trial_days: int = 0
+    auto_renew: bool = True
+    is_active: bool = True
+    subscriptions: List["Subscription"] = field(default_factory=list)

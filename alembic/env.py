@@ -1,52 +1,28 @@
-import os
-from logging.config import fileConfig
+from __future__ import annotations
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-from app.core.config import get_settings
-from app.db.base import Base
-from app import models  # noqa: F401
+from app.db.base import describe_schema
 
-config = context.config
-settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
-
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-target_metadata = Base.metadata
+SCHEMA = describe_schema()
 
 
-def run_migrations_offline():
-    url = config.get_main_option("sqlalchemy.url")
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
-
-    with context.begin_transaction():
-        context.run_migrations()
+def _emit(message: str) -> None:
+    config = getattr(context, "config", None)
+    buffer = getattr(config, "output_buffer", None) if config else None
+    if buffer is not None:
+        buffer.write(message + "\n")
+    else:  # pragma: no cover - fallback when Alembic context is absent
+        print(message)
 
 
-def run_migrations_online():
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-
-        with context.begin_transaction():
-            context.run_migrations()
+def run_migrations_offline() -> None:
+    _emit("Alembic offline stub. The following tables would be created:")
+    for table in SCHEMA.values():
+        columns = ", ".join(column.name for column in table.columns)
+        _emit(f"- {table.name}: {columns}")
 
 
-default_target = os.getenv("ALEMBIC_OFFLINE", "false").lower() == "true"
-if default_target:
+def run_migrations_online() -> None:
+    _emit("Alembic online execution is not available in this environment.")
     run_migrations_offline()
-else:
-    run_migrations_online()

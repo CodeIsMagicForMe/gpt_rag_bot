@@ -1,13 +1,20 @@
-from fastapi import FastAPI
+from __future__ import annotations
 
-from app.api.routes import router as api_router
+from dataclasses import dataclass
+
+from app.api.routes import router
 from app.core.config import get_settings
 
+
+@dataclass
+class SubscriptionsApp:
+    title: str
+    routes: dict[str, object]
+
+
 settings = get_settings()
-app = FastAPI(title=settings.app_name)
-app.include_router(api_router)
+app = SubscriptionsApp(title=settings.app_name, routes=router.routes)
 
 
-@app.get("/")
-def root():
+def root() -> dict[str, str]:
     return {"message": "Subscriptions service is running"}

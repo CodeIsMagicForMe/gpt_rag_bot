@@ -1,13 +1,17 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
 from datetime import datetime
-from pydantic import BaseModel
 
 
-class TrialStartRequest(BaseModel):
+@dataclass(slots=True)
+class TrialStartRequest:
     user_id: int
     plan_id: int
 
 
-class TrialStartResponse(BaseModel):
+@dataclass(slots=True)
+class TrialStartResponse:
     subscription_id: int
-    trial_end: datetime
+    trial_end: datetime | None
     end_date: datetime

@@ -25,7 +25,7 @@ def test_promocode_usage_limit(db_session):
 
 
 def test_confirm_payment_extends_subscription(db_session):
-    user = db_session.query(User).get(1)
+    user = db_session.get(User, 1)
     user.stars_balance = 100
     db_session.commit()
 
@@ -39,11 +39,12 @@ def test_confirm_payment_extends_subscription(db_session):
     )
 
     subscription = payment.subscription
+    assert subscription is not None
     assert subscription.end_date > datetime.utcnow() + timedelta(days=25)
 
 
 def test_subscription_status_reflects_grace(db_session):
-    user = db_session.query(User).get(1)
+    user = db_session.get(User, 1)
     user.stars_balance = 100
     db_session.commit()
 
@@ -58,6 +59,7 @@ def test_subscription_status_reflects_grace(db_session):
     subscription = payment.subscription
     subscription.end_date = datetime.utcnow() - timedelta(days=1)
     subscription.grace_until = datetime.utcnow() + timedelta(days=2)
+    db_session.add(subscription)
     db_session.commit()
 
     status = subscription_service.get_subscription_status(db_session, user_id=1)
@@ -65,7 +67,7 @@ def test_subscription_status_reflects_grace(db_session):
 
 
 def test_process_auto_renewals(db_session):
-    user = db_session.query(User).get(1)
+    user = db_session.get(User, 1)
     user.stars_balance = 1000
     db_session.commit()
 
@@ -79,6 +81,7 @@ def test_process_auto_renewals(db_session):
     )
     subscription = payment.subscription
     subscription.next_billing_at = datetime.utcnow() - timedelta(minutes=5)
+    db_session.add(subscription)
     db_session.commit()
 
     renewed = subscription_service.process_auto_renewals(db_session)

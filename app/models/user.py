@@ -1,20 +1,17 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, String, Boolean
-from sqlalchemy.orm import relationship
-
-from app.db.base import Base
+from typing import List
 
 
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, nullable=False, index=True)
-    full_name = Column(String, nullable=True)
-    stars_balance = Column(Integer, default=0, nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    subscriptions = relationship("Subscription", back_populates="user")
-    payments = relationship("Payment", back_populates="user")
-
+@dataclass
+class User:
+    id: int | None = None
+    email: str = ""
+    full_name: str | None = None
+    stars_balance: int = 0
+    is_active: bool = True
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    subscriptions: List["Subscription"] = field(default_factory=list)
+    payments: List["Payment"] = field(default_factory=list)

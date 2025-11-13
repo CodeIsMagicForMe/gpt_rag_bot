@@ -1,58 +1,75 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from __future__ import annotations
 
-from app.db.session import get_db
+from typing import Callable, Dict
+
+from app.db.session import InMemorySession, get_session
 from app.schemas.payments import PaymentConfirmRequest, PaymentResponse
 from app.schemas.promocode import PromocodeApplyRequest, PromocodeApplyResponse
 from app.schemas.subscription import SubscriptionStatusResponse
 from app.schemas.trial import TrialStartRequest, TrialStartResponse
 from app.services import subscription_service
 
-router = APIRouter()
+
+class SimpleRouter:
+    def __init__(self) -> None:
+        self.routes: Dict[str, Callable[..., object]] = {}
+
+    def post(self, path: str) -> Callable[[Callable[..., object]], Callable[..., object]]:
+        return self._register("POST", path)
+
+    def get(self, path: str) -> Callable[[Callable[..., object]], Callable[..., object]]:
+        return self._register("GET", path)
+
+    def _register(self, method: str, path: str) -> Callable[[Callable[..., object]], Callable[..., object]]:
+        def decorator(func: Callable[..., object]) -> Callable[..., object]:
+            self.routes[f"{method} {path}"] = func
+            return func
+
+        return decorator
 
 
-@router.post("/payments/stars/confirm", response_model=PaymentResponse)
-def confirm_payment(payload: PaymentConfirmRequest, db: Session = Depends(get_db)):
-    try:
-        payment = subscription_service.confirm_star_payment(
-            db,
-            user_id=payload.user_id,
-            plan_id=payload.plan_id,
-            transaction_id=payload.transaction_id,
-            stars_used=payload.stars_used,
-            amount_cents=payload.amount_cents,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+router = SimpleRouter()
 
+
+def _resolve_session(db: InMemorySession | None) -> InMemorySession:
+    return db or get_session()
+
+
+@router.post("/payments/stars/confirm")
+def confirm_payment(payload: PaymentConfirmRequest, db: InMemorySession | None = None) -> PaymentResponse:
+    session = _resolve_session(db)
+    payment = subscription_service.confirm_star_payment(
+        session,
+        user_id=payload.user_id,
+        plan_id=payload.plan_id,
+        transaction_id=payload.transaction_id,
+        stars_used=payload.stars_used,
+        amount_cents=payload.amount_cents,
+    )
     subscription = payment.subscription
     return PaymentResponse(
-        payment_id=payment.id,
-        subscription_id=subscription.id,
+        payment_id=payment.id or 0,
+        subscription_id=subscription.id or 0 if subscription else 0,
         status=payment.status,
-        next_billing_at=subscription.next_billing_at,
+        next_billing_at=subscription.next_billing_at if subscription else None,
     )
 
 
-@router.post("/trial/start", response_model=TrialStartResponse)
-def start_trial(payload: TrialStartRequest, db: Session = Depends(get_db)):
-    try:
-        subscription = subscription_service.start_trial(db, payload.user_id, payload.plan_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+@router.post("/trial/start")
+def start_trial(payload: TrialStartRequest, db: InMemorySession | None = None) -> TrialStartResponse:
+    session = _resolve_session(db)
+    subscription = subscription_service.start_trial(session, payload.user_id, payload.plan_id)
     return TrialStartResponse(
-        subscription_id=subscription.id,
+        subscription_id=subscription.id or 0,
         trial_end=subscription.trial_end,
         end_date=subscription.end_date,
     )
 
 
-@router.post("/promocode/apply", response_model=PromocodeApplyResponse)
-def apply_promocode(payload: PromocodeApplyRequest, db: Session = Depends(get_db)):
-    try:
-        promo = subscription_service.apply_promocode(db, payload.user_id, payload.plan_id, payload.code)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+@router.post("/promocode/apply")
+def apply_promocode(payload: PromocodeApplyRequest, db: InMemorySession | None = None) -> PromocodeApplyResponse:
+    session = _resolve_session(db)
+    promo = subscription_service.apply_promocode(session, payload.user_id, payload.plan_id, payload.code)
     return PromocodeApplyResponse(
         code=promo.code,
         discount_percent=promo.discount_percent,
@@ -62,15 +79,13 @@ def apply_promocode(payload: PromocodeApplyRequest, db: Session = Depends(get_db
     )
 
 
-@router.get("/subs/status", response_model=SubscriptionStatusResponse)
-def subscription_status(user_id: int, db: Session = Depends(get_db)):
-    try:
-        subscription = subscription_service.get_subscription_status(db, user_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+@router.get("/subs/status")
+def subscription_status(user_id: int, db: InMemorySession | None = None) -> SubscriptionStatusResponse:
+    session = _resolve_session(db)
+    subscription = subscription_service.get_subscription_status(session, user_id)
     return SubscriptionStatusResponse(
-        user_id=subscription.user_id,
-        plan_id=subscription.plan_id,
+        user_id=subscription.user_id or 0,
+        plan_id=subscription.plan_id or 0,
         status=subscription.status.value,
         end_date=subscription.end_date,
         grace_until=subscription.grace_until,

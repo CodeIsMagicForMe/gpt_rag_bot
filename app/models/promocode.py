@@ -1,21 +1,19 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
-from sqlalchemy.orm import relationship
-
-from app.db.base import Base
+from typing import List
 
 
-class Promocode(Base):
-    __tablename__ = "promocodes"
-
-    id = Column(Integer, primary_key=True)
-    code = Column(String, unique=True, nullable=False, index=True)
-    discount_percent = Column(Integer, default=0, nullable=False)
-    bonus_days = Column(Integer, default=0, nullable=False)
-    bonus_stars = Column(Integer, default=0, nullable=False)
-    max_usages = Column(Integer, default=1, nullable=False)
-    used = Column(Integer, default=0, nullable=False)
-    valid_until = Column(DateTime, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-
-    referrals = relationship("Referral", back_populates="promocode")
+@dataclass
+class Promocode:
+    id: int | None = None
+    code: str = ""
+    discount_percent: int = 0
+    bonus_days: int = 0
+    bonus_stars: int = 0
+    max_usages: int = 1
+    used: int = 0
+    valid_until: datetime | None = None
+    is_active: bool = True
+    referrals: List["Referral"] = field(default_factory=list)
