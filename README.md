@@ -49,3 +49,39 @@ python -m provisioner.main
 * `POST /stats/peers` — обновление статистики активных пиров.
 * `GET /nodes` — список доступных узлов.
 * `GET /metrics` — метрики Prometheus, дополнительно события отправляются в StatsD.
+
+## SmartDNS
+
+В репозитории есть отдельный сервис SmartDNS на базе `dnslib`, который умеет подменять IP‑адреса для целевых доменов и отдавать остальные запросы через публичные DNS.
+
+Возможности:
+
+* Загрузка правил из таблицы `smartdns_rules` (SQLAlchemy модель присутствует в `db/models.py`) и/или из файла формата `domain ip [ttl]`.
+* Горячий перезапуск правил по таймеру без остановки DNS‑сервера.
+* Мониторинг доступности (постоянный запрос домена) и метрики Prometheus (`/metrics` поднимается через встроенный HTTP‑сервер библиотеки).
+
+### Конфигурация
+
+Через переменные окружения (есть поддержка `.env`):
+
+```
+SMARTDNS_HOST=0.0.0.0
+SMARTDNS_PORT=1053
+SMARTDNS_ENABLE_TCP=true
+SMARTDNS_RULES_BACKEND=auto        # db | file | both | auto
+SMARTDNS_RULES_FILE=/etc/smartdns.rules
+SMARTDNS_RELOAD_INTERVAL=30
+SMARTDNS_UPSTREAMS=1.1.1.1:53,8.8.8.8:53
+SMARTDNS_METRICS_HOST=0.0.0.0
+SMARTDNS_METRICS_PORT=9105
+SMARTDNS_MONITOR_DOMAIN=example.com
+SMARTDNS_MONITOR_HOST=127.0.0.1
+SMARTDNS_MONITOR_PORT=1053
+DATABASE_URL=sqlite:///./provisioner.db
+```
+
+### Запуск
+
+```
+python -m smartdns.main
+```

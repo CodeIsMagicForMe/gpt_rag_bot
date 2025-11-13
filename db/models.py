@@ -103,3 +103,15 @@ class ActivePeer(Base):
 
     provision = relationship("Provision", back_populates="peer")
 
+
+class SmartDNSRule(Base):
+    __tablename__ = "smartdns_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pattern = Column(String(255), unique=True, nullable=False, index=True)
+    ip_address = Column(String(45), nullable=False)
+    ttl = Column(Integer, nullable=False, default=60)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    source = Column(String(32))
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
