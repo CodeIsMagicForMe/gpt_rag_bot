@@ -39,6 +39,69 @@
     dest: /etc/netdata/health.d/telegram.conf
     owner: root
     group: root
+  mode: '0644'
+  notify: Restart netdata
+
+- name: Ensure Netdata go.d configuration directory exists
+  ansible.builtin.file:
+    path: /etc/netdata/go.d
+    state: directory
+    owner: root
+    group: netdata
+    mode: '0750'
+
+- name: Ensure Netdata python.d configuration directory exists
+  ansible.builtin.file:
+    path: /etc/netdata/python.d
+    state: directory
+    owner: root
+    group: netdata
+    mode: '0750'
+
+- name: Ensure Netdata fping configuration directory exists
+  ansible.builtin.file:
+    path: /etc/netdata/fping.d
+    state: directory
+    owner: root
+    group: netdata
+    mode: '0750'
+
+- name: Deploy Netdata WireGuard collectors
+  ansible.builtin.template:
+    src: go.d-wireguard.conf.j2
+    dest: /etc/netdata/go.d/wireguard.conf
+    owner: root
+    group: netdata
+    mode: '0640'
+  when: netdata_wireguard_interfaces | length > 0
+  notify: Restart netdata
+
+- name: Deploy Netdata OpenVPN collector
+  ansible.builtin.template:
+    src: python.d-openvpn.conf.j2
+    dest: /etc/netdata/python.d/openvpn.conf
+    owner: root
+    group: netdata
+    mode: '0640'
+  when: netdata_openvpn_status_log | length > 0
+  notify: Restart netdata
+
+- name: Deploy Netdata fping targets
+  ansible.builtin.template:
+    src: fping.conf.j2
+    dest: /etc/netdata/fping.d/targets.conf
+    owner: root
+    group: netdata
+    mode: '0640'
+  when: netdata_latency_targets | length > 0
+  notify: Restart netdata
+
+- name: Configure VPN health alarms
+  ansible.builtin.template:
+    src: health.d-vpn.conf.j2
+    dest: /etc/netdata/health.d/vpn.conf
+    owner: root
+    group: root
     mode: '0644'
   notify: Restart netdata
 

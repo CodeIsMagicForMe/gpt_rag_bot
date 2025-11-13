@@ -1,0 +1,72 @@
+---
+- name: Ensure backup working directory exists
+  ansible.builtin.file:
+    path: "{{ backup_local_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Deploy daily backup script
+  ansible.builtin.template:
+    src: vpn-backup.sh.j2
+    dest: /usr/local/bin/vpn-backup.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Deploy restore verification script
+  ansible.builtin.template:
+    src: vpn-backup-restore.sh.j2
+    dest: /usr/local/bin/vpn-backup-restore.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Install backup service unit
+  ansible.builtin.template:
+    src: vpn-backup.service.j2
+    dest: /etc/systemd/system/vpn-backup.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Install backup timer unit
+  ansible.builtin.template:
+    src: vpn-backup.timer.j2
+    dest: /etc/systemd/system/vpn-backup.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Install restore verification service
+  ansible.builtin.template:
+    src: vpn-backup-restore.service.j2
+    dest: /etc/systemd/system/vpn-backup-restore.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Install restore verification timer
+  ansible.builtin.template:
+    src: vpn-backup-restore.timer.j2
+    dest: /etc/systemd/system/vpn-backup-restore.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Ensure backup timer enabled
+  ansible.builtin.systemd:
+    name: vpn-backup.timer
+    enabled: true
+    state: started
+
+- name: Ensure restore verification timer enabled
+  ansible.builtin.systemd:
+    name: vpn-backup-restore.timer
+    enabled: true
+    state: started
