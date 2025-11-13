@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LOG_DIR=/var/log/vpn
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/vpn-backup.log"
+
+echo "[$(date -u --iso-8601=seconds)] Starting backup" >>"$LOG_FILE"
+
+TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
+WORKDIR="{{ backup_local_dir }}"
+TARGET_DIR="$WORKDIR/$TIMESTAMP"
+mkdir -p "$TARGET_DIR"
+
+DB_CONTAINER=$(docker ps \
+  --filter "label=com.docker.compose.project={{ backup_compose_project }}" \
+  --filter "label=com.docker.compose.service=db" \
+  --format "{{ '{{' }}.ID{{ '}}' }}" \
+  | head -n1)
+
+if [[ -z "$DB_CONTAINER" ]]; then
+  echo "[$(date -u --iso-8601=seconds)] Database container not found" >>"$LOG_FILE"
+  exit 1
+fi
+
+DB_DUMP="$TARGET_DIR/{{ backup_pg_database }}.dump"
+if ! docker exec -T "$DB_CONTAINER" pg_dump -U {{ backup_pg_user }} -d {{ backup_pg_database }} -F c >"$DB_DUMP"; then
+  echo "[$(date -u --iso-8601=seconds)] pg_dump failed" >>"$LOG_FILE"
+  exit 1
+fi
+
+CONFIG_ARCHIVE="$TARGET_DIR/configs.tar.gz"
+declare -a CONFIG_PATHS
+{% for path in backup_config_paths %}CONFIG_PATHS+=("{{ path }}")
+{% endfor %}
+
+# Create archive with available configuration paths
+pushd / >/dev/null
+AVAILABLE=()
+for entry in "${CONFIG_PATHS[@]}"; do
+  if [[ -e "$entry" ]]; then
+    AVAILABLE+=(".$entry")
+  fi
+done
+if [[ ${#AVAILABLE[@]} -gt 0 ]]; then
+  tar -czf "$CONFIG_ARCHIVE" "${AVAILABLE[@]}"
+else
+  echo "[$(date -u --iso-8601=seconds)] No configuration files found to archive" >>"$LOG_FILE"
+  rm -f "$CONFIG_ARCHIVE"
+fi
+popd >/dev/null
+
+# Generate manifest
+( cd "$TARGET_DIR" && sha256sum * > SHA256SUMS )
+
+REMOTE_BASE="{{ rclone_remote_name }}:{{ rclone_backup_bucket }}"
+REMOTE_PATH="$REMOTE_BASE/$(hostname -s)/$TIMESTAMP"
+if ! rclone copy "$TARGET_DIR" "$REMOTE_PATH"; then
+  echo "[$(date -u --iso-8601=seconds)] rclone upload failed" >>"$LOG_FILE"
+  exit 1
+fi
+
+find "$WORKDIR" -mindepth 1 -maxdepth 1 -type d -mtime +{{ backup_retention_days }} -exec rm -rf {} +
+
+echo "[$(date -u --iso-8601=seconds)] Backup finished" >>"$LOG_FILE"

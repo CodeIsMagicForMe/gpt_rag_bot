@@ -1,0 +1,7 @@
+[Unit]
+Description=Collect anonymised VPN telemetry
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/vpn-log-exporter.py

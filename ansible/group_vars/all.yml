@@ -71,6 +71,14 @@ netdata_telegram_bot_token: ""
 netdata_telegram_room_id: ""
 netdata_alarm_role: vpn
 netdata_health_alarm: warning
+netdata_prometheus_bind: 0.0.0.0
+netdata_prometheus_port: 19999
+netdata_latency_targets: []
+netdata_rtt_warn_ms: 120
+netdata_rtt_crit_ms: 250
+netdata_wireguard_interfaces:
+  - "{{ wireguard_interface }}"
+netdata_openvpn_status_log: /var/log/openvpn/status.log
 
 rclone_remote_name: backups
 rclone_remote_type: s3
@@ -84,6 +92,22 @@ rclone_remote_config:
 rclone_backup_bucket: vpn-journald-backups
 rclone_backup_interval: 6h
 rclone_backup_retention_days: 30
+
+backup_local_dir: /var/backups/vpn
+backup_config_paths:
+  - /etc/wireguard
+  - /etc/openvpn
+  - /opt/amneziawg
+  - /etc/smartdns
+  - "{{ services_compose_dir }}/docker-compose.yml"
+  - "{{ services_compose_dir }}/.env"
+backup_pg_database: billing
+backup_pg_user: billing
+backup_compose_project: platform
+backup_daily_time: '03:30'
+backup_restore_time: 'Sun *-*-01,15 04:00:00'
+backup_retention_days: 14
+backup_restore_timeout: 120
 
 services_compose_dir: /opt/platform
 services_compose_user: root

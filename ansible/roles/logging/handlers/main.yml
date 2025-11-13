@@ -2,3 +2,8 @@
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: Restart vpn log exporter
+  ansible.builtin.systemd:
+    name: vpn-log-exporter.timer
+    state: restarted
