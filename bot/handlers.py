@@ -48,12 +48,11 @@ class HandlerContext:
 _handler_context: Optional[HandlerContext] = None
 
 
-def create_router(config: Config, billing: BillingAPI, provisioner: ProvisionerAPI) -> Router:
+def set_handler_context(config: Config, billing: BillingAPI, provisioner: ProvisionerAPI) -> None:
+    """Store shared dependencies for handlers."""
+
     global _handler_context
     _handler_context = HandlerContext(config=config, billing=billing, provisioner=provisioner)
-    router = Router(name="main")
-    register_common_handlers(router)
-    return router
 
 
 def register_common_handlers(router: Router) -> None:
