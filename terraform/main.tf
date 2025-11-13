@@ -1,12 +1,13 @@
 locals {
-  servers = { for server in var.servers : server.hostname => server }
+  selected_environment = var.environments[var.environment]
+  servers              = { for server in local.selected_environment.servers : server.hostname => server }
 }
 
 provider "restapi" {
   uri                  = var.ishosting_api_base
   write_returns_object = true
   headers = {
-    Authorization = "Bearer ${var.ishosting_api_token}"
+    Authorization = "Bearer ${local.ishosting_api_token}"
     Content-Type  = "application/json"
   }
 }
@@ -45,6 +46,12 @@ locals {
 }
 
 resource "local_file" "ansible_inventory" {
-  content  = templatefile("${path.module}/templates/ansible_hosts.tftpl", { servers = local.server_inventory })
+  content = templatefile(
+    "${path.module}/templates/ansible_hosts.tftpl",
+    {
+      servers     = local.server_inventory
+      environment = var.environment
+    }
+  )
   filename = var.ansible_inventory_path
 }

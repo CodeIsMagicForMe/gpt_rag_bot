@@ -40,6 +40,8 @@ def _build_service(settings: ProvisionerSettings) -> ProvisioningService:
         region=settings.s3_region,
         presign_ttl=settings.s3_presign_ttl,
         endpoint_url=settings.s3_endpoint_url,
+        sse_algorithm=settings.s3_sse_algorithm,
+        sse_kms_key_id=settings.s3_sse_kms_key_id,
     )
     return ProvisioningService(
         session_factory=session_scope,

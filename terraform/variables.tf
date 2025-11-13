@@ -1,59 +1,80 @@
+variable "environment" {
+  description = "Deployment environment (dev, stage, prod)"
+  type        = string
+  default     = "dev"
+  validation {
+    condition     = contains(["dev", "stage", "prod"], var.environment)
+    error_message = "Environment must be one of dev, stage, prod"
+  }
+}
+
+variable "environments" {
+  description = "Environment specific configuration (servers + Lockbox secret id)"
+  type = map(object({
+    lockbox_secret_id = string
+    servers = list(object({
+      hostname    = string
+      location    = string
+      plan        = string
+      image       = string
+      ipv4_count  = number
+      ssh_keys    = list(string)
+      user_data   = optional(string)
+      tags        = optional(list(string))
+    }))
+  }))
+  default = {
+    dev = {
+      lockbox_secret_id = ""
+      servers = []
+    }
+    stage = {
+      lockbox_secret_id = ""
+      servers = []
+    }
+    prod = {
+      lockbox_secret_id = ""
+      servers = []
+    }
+  }
+}
+
 variable "ishosting_api_base" {
   description = "Base URL for the ishosting API"
   type        = string
   default     = "https://api.ishosting.com/client/v2"
 }
 
-variable "ishosting_api_token" {
-  description = "API token for authenticating against the ishosting API"
+variable "ishosting_api_token_override" {
+  description = "Optional override for the ishosting API token (bypasses Lockbox)"
   type        = string
+  default     = ""
   sensitive   = true
 }
 
-variable "servers" {
-  description = "List of server definitions to create"
-  type = list(object({
-    hostname    = string
-    location    = string
-    plan        = string
-    image       = string
-    ipv4_count  = number
-    ssh_keys    = list(string)
-    user_data   = optional(string)
-    tags        = optional(list(string))
-  }))
-  default = [
-    {
-      hostname   = "vpn-01"
-      location   = "nl1"
-      plan       = "medium"
-      image      = "ubuntu-22-04-x64"
-      ipv4_count = 3
-      ssh_keys   = []
-      user_data  = null
-      tags       = ["vpn", "production"]
-    },
-    {
-      hostname   = "vpn-02"
-      location   = "nl1"
-      plan       = "medium"
-      image      = "ubuntu-22-04-x64"
-      ipv4_count = 3
-      ssh_keys   = []
-      user_data  = null
-      tags       = ["vpn", "production"]
-    },
-    {
-      hostname   = "vpn-03"
-      location   = "nl1"
-      plan       = "medium"
-      image      = "ubuntu-22-04-x64"
-      ipv4_count = 3
-      ssh_keys   = []
-      user_data  = null
-      tags       = ["vpn", "production"]
-    }
-  ]
+variable "yandex_token" {
+  description = "OAuth token for Yandex Cloud (can also be supplied via YC_TOKEN env var)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "yandex_service_account_key_file" {
+  description = "Path to a service account key JSON file for Yandex Cloud (optional if token is used)"
+  type        = string
+  default     = ""
+}
+
+variable "yandex_cloud_id" {
+  description = "Yandex Cloud ID"
+  type        = string
+  default     = ""
+}
+
+variable "yandex_folder_id" {
+  description = "Yandex Cloud Folder ID that stores Lockbox secrets"
+  type        = string
+  default     = ""
 }
 
 variable "ansible_inventory_path" {

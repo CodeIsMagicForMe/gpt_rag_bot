@@ -5,6 +5,7 @@
   vars_files:
     - group_vars/all.yml
   roles:
+    - role: secrets
     - role: common
     - role: security
     - role: docker

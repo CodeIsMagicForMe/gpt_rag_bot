@@ -28,6 +28,11 @@ class Settings(BaseSettings):
             "<b>Сколько действует подписка?</b>\n" "30 дней с момента активации."
         )
     )
+    terms_url: HttpUrl = Field(default="https://example.com/terms", alias="TERMS_URL")
+    privacy_url: HttpUrl = Field(default="https://example.com/privacy", alias="PRIVACY_URL")
+    data_usage_notice: str = Field(
+        default="ℹ️ Мы храним только ваш Telegram ID и технические метаданные, необходимые для выдачи доступа."
+    )
 
     class Config:
         env_file = ".env"
@@ -43,6 +48,9 @@ class Config:
     payment_provider_token: Optional[str]
     subscription_plan: SubscriptionPlan
     faq_text: str
+    terms_url: str
+    privacy_url: str
+    data_usage_notice: str
 
 
 @lru_cache()
@@ -56,4 +64,7 @@ def load_config() -> Config:
         payment_provider_token=settings.payment_provider_token,
         subscription_plan=settings.subscription_plan,
         faq_text=settings.faq_text,
+        terms_url=str(settings.terms_url),
+        privacy_url=str(settings.privacy_url),
+        data_usage_notice=settings.data_usage_notice,
     )
