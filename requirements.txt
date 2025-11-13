@@ -11,3 +11,4 @@ segno>=1.6.0
 prometheus-client>=0.20.0
 statsd>=4.0.1
 wgctrl>=0.0.3
+dnslib>=0.9.24
