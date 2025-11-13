@@ -1,0 +1,9 @@
+bind {{ smartdns_bind }}:{{ smartdns_port }}
+cache-size 4096
+dns-forward-max 1024
+serve-expired yes
+prefetch-domain yes
+log-level error
+
+{% for upstream in smartdns_upstreams %}server-name {{ loop.index }} {{ upstream }}
+{% endfor %}

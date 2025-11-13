@@ -1,0 +1,53 @@
+version: "3.9"
+services:
+  bot:
+    image: {{ bot_image }}
+    env_file: .env
+    restart: always
+    networks:
+      - internal
+    depends_on:
+      - redis
+    command: ["/app/start-bot"]
+  billing:
+    image: {{ billing_image }}
+    env_file: .env
+    restart: always
+    networks:
+      - internal
+    depends_on:
+      - db
+    command: ["/app/start-billing"]
+  provisioner:
+    image: {{ provisioner_image }}
+    env_file: .env
+    restart: always
+    networks:
+      - internal
+    depends_on:
+      - redis
+    command: ["/app/start-provisioner"]
+  db:
+    image: {{ postgres_image }}
+    restart: always
+    environment:
+      POSTGRES_DB: billing
+      POSTGRES_USER: billing
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+  redis:
+    image: {{ redis_image }}
+    restart: always
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  db_data:

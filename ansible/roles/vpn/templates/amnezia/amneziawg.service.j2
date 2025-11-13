@@ -1,0 +1,12 @@
+[Unit]
+Description=Amnezia WireGuard service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/amneziawg/amneziawg --config /opt/amneziawg/config.yaml
+Restart=on-failure
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

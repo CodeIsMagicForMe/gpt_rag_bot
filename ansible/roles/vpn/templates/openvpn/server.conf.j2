@@ -1,0 +1,24 @@
+port {{ openvpn_port }}
+proto {{ openvpn_proto }}
+dev tun
+user nobody
+group nogroup
+persist-key
+persist-tun
+server {{ openvpn_network }}
+topology subnet
+dhcp-option DNS {{ smartdns_bind }}
+keepalive 10 120
+cipher AES-256-GCM
+data-ciphers AES-256-GCM:AES-256-CBC
+push "redirect-gateway def1 bypass-dhcp"
+{% for route in openvpn_push_routes %}{{ route }}
+{% endfor %}
+verb 3
+crl-verify crl.pem
+ca ca.crt
+cert server.crt
+key server.key
+dh dh.pem
+status /var/log/openvpn/status.log
+log-append /var/log/openvpn/openvpn.log

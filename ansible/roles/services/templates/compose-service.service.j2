@@ -1,0 +1,19 @@
+[Unit]
+Description=Platform {{ item }} service
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory={{ services_compose_dir }}
+EnvironmentFile=-{{ services_compose_dir }}/.env
+ExecStart=/usr/bin/docker compose --file {{ services_compose_dir }}/docker-compose.yml up --detach {{ item }}
+ExecStop=/usr/bin/docker compose --file {{ services_compose_dir }}/docker-compose.yml stop {{ item }}
+ExecReload=/usr/bin/docker compose --file {{ services_compose_dir }}/docker-compose.yml restart {{ item }}
+TimeoutStartSec=0
+TimeoutStopSec=60
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

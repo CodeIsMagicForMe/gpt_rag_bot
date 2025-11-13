@@ -1,0 +1,103 @@
+---
+admin_user: deploy
+admin_groups:
+  - sudo
+admin_shell: /bin/bash
+admin_ssh_keys:
+  - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyStringForAdminUser comment@example"
+ssh_port: 22
+
+apt_mirror: http://archive.ubuntu.com/ubuntu
+packages_common:
+  - ca-certificates
+  - curl
+  - gnupg
+  - software-properties-common
+  - fail2ban
+  - ufw
+  - unattended-upgrades
+  - apt-listchanges
+  - python3-apt
+  - smartmontools
+
+unattended_upgrades_origins:
+  - "origin=Ubuntu,codename=${distro_codename},label=Ubuntu"
+  - "origin=Ubuntu,codename=${distro_codename}-security,label=Ubuntu"
+  - "origin=UbuntuESM,codename=${distro_codename},label=Ubuntu"
+
+fail2ban_jails:
+  - name: sshd
+    enabled: true
+    port: "{{ ssh_port }}"
+    filter: sshd
+    maxretry: 5
+    bantime: 3600
+
+ufw_rules_allow:
+  - { rule: allow, port: "{{ ssh_port }}" }
+  - { rule: allow, port: "51820/udp" }
+  - { rule: allow, port: "1194/udp" }
+  - { rule: allow, port: "5555/udp" }  # Amnezia WG
+  - { rule: allow, port: "19999/tcp" } # Netdata
+
+wireguard_interface: wg0
+wireguard_address: 10.8.0.1/24
+wireguard_listen_port: 51820
+wireguard_private_key: ""
+wireguard_peers: []
+
+openvpn_port: 1194
+openvpn_proto: udp
+openvpn_network: 10.9.0.0 255.255.255.0
+openvpn_push_routes:
+  - "push \"redirect-gateway def1\""
+  - "push \"dhcp-option DNS 10.8.0.1\""
+
+amneziawg_port: 5555
+amneziawg_interface: awg0
+amneziawg_address: 10.10.0.1/24
+amneziawg_private_key: ""
+amneziawg_peers: []
+
+smartdns_port: 53
+smartdns_bind: 0.0.0.0
+smartdns_upstreams:
+  - tls://1.1.1.1:853
+  - tls://1.0.0.1:853
+  - tls://9.9.9.9:853
+
+netdata_telegram_enabled: true
+netdata_telegram_bot_token: ""
+netdata_telegram_room_id: ""
+netdata_alarm_role: vpn
+netdata_health_alarm: warning
+
+rclone_remote_name: backups
+rclone_remote_type: s3
+rclone_remote_config:
+  provider: Other
+  env_auth: false
+  access_key_id: ""
+  secret_access_key: ""
+  endpoint: https://s3.example.com
+  acl: private
+rclone_backup_bucket: vpn-journald-backups
+rclone_backup_interval: 6h
+rclone_backup_retention_days: 30
+
+services_compose_dir: /opt/platform
+services_compose_user: root
+services_env:
+  BOT_TOKEN: ""
+  BILLING_DATABASE_URL: postgresql://billing:secret@db/billing
+  PROVISIONER_ENDPOINT: https://provisioner.internal
+  TELEGRAM_BOT_TOKEN: ""
+  TELEGRAM_CHAT_ID: ""
+
+bot_image: ghcr.io/example/bot:latest
+billing_image: ghcr.io/example/billing:latest
+provisioner_image: ghcr.io/example/provisioner:latest
+postgres_image: postgres:15
+redis_image: redis:7-alpine
+
+journald_storage: persistent

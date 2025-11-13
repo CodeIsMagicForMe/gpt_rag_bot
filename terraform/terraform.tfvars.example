@@ -1,0 +1,14 @@
+ishosting_api_token = "changeme"
+
+servers = [
+  {
+    hostname   = "vpn-01"
+    location   = "nl1"
+    plan       = "medium"
+    image      = "ubuntu-22-04-x64"
+    ipv4_count = 3
+    ssh_keys   = ["ssh-ed25519 AAAAC3..." ]
+    user_data  = null
+    tags       = ["vpn", "prod"]
+  }
+]
