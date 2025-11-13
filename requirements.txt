@@ -12,3 +12,5 @@ prometheus-client>=0.20.0
 statsd>=4.0.1
 wgctrl>=0.0.3
 dnslib>=0.9.24
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
