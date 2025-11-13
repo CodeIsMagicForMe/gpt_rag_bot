@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule VPN backup restore validation
+
+[Timer]
+OnCalendar={{ backup_restore_time }}
+Persistent=true
+Unit=vpn-backup-restore.service
+
+[Install]
+WantedBy=timers.target

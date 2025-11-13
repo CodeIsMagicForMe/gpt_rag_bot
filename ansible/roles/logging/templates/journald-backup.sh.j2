@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REMOTE="{{ rclone_remote_name }}:{{ rclone_backup_bucket }}/$(hostname)"
+STAMP="$(date +%Y%m%dT%H%M%S)"
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$WORKDIR"' EXIT
+
+journalctl --no-pager -o export > "$WORKDIR/journal.export"
+tar -C "$WORKDIR" -czf "$WORKDIR/journal-${STAMP}.tgz" journal.export
+/usr/bin/rclone copy "$WORKDIR/journal-${STAMP}.tgz" "$REMOTE/"
+/usr/bin/rclone delete "$REMOTE/" --min-age {{ rclone_backup_retention_days }}d || true

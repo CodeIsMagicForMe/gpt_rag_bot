@@ -1,0 +1,32 @@
+environment = "dev"
+
+yandex_cloud_id  = ""
+yandex_folder_id = ""
+yandex_token     = ""
+ishosting_api_token_override = ""
+
+environments = {
+  dev = {
+    lockbox_secret_id = "<lockbox-secret-id-dev>"
+    servers = [
+      {
+        hostname   = "vpn-dev-01"
+        location   = "nl1"
+        plan       = "medium"
+        image      = "ubuntu-22-04-x64"
+        ipv4_count = 1
+        ssh_keys   = ["ssh-ed25519 AAAAC3... dev@example"]
+        user_data  = null
+        tags       = ["vpn", "dev"]
+      }
+    ]
+  }
+  stage = {
+    lockbox_secret_id = "<lockbox-secret-id-stage>"
+    servers           = []
+  }
+  prod = {
+    lockbox_secret_id = "<lockbox-secret-id-prod>"
+    servers           = []
+  }
+}

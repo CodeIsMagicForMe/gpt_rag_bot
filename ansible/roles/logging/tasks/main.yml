@@ -1,0 +1,115 @@
+---
+- name: Install rclone
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+    update_cache: true
+
+- name: Ensure VPN log directory exists
+  ansible.builtin.file:
+    path: /var/log/vpn
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Ensure rclone configuration directory exists
+  ansible.builtin.file:
+    path: /root/.config/rclone
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Render rclone configuration
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: /root/.config/rclone/rclone.conf
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Deploy journald backup script
+  ansible.builtin.template:
+    src: journald-backup.sh.j2
+    dest: /usr/local/bin/journald-backup.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Install journald backup service
+  ansible.builtin.template:
+    src: journald-backup.service.j2
+    dest: /etc/systemd/system/journald-backup.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Install journald backup timer
+  ansible.builtin.template:
+    src: journald-backup.timer.j2
+    dest: /etc/systemd/system/journald-backup.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Enable journald backup timer
+  ansible.builtin.systemd:
+    name: journald-backup.timer
+    enabled: true
+    state: started
+
+- name: Deploy VPN telemetry collector
+  ansible.builtin.template:
+    src: vpn-log-exporter.py.j2
+    dest: /usr/local/bin/vpn-log-exporter.py
+    owner: root
+    group: root
+    mode: '0750'
+  notify: Restart vpn log exporter
+
+- name: Install VPN telemetry service
+  ansible.builtin.template:
+    src: vpn-log-exporter.service.j2
+    dest: /etc/systemd/system/vpn-log-exporter.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart vpn log exporter
+
+- name: Install VPN telemetry timer
+  ansible.builtin.template:
+    src: vpn-log-exporter.timer.j2
+    dest: /etc/systemd/system/vpn-log-exporter.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart vpn log exporter
+
+- name: Install logrotate configuration for VPN telemetry
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/vpn-telemetry
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      /var/log/vpn/*.log {
+          weekly
+          rotate 8
+          compress
+          missingok
+          notifempty
+          create 0640 root root
+      }
+
+- name: Ensure VPN telemetry timer enabled
+  ansible.builtin.systemd:
+    name: vpn-log-exporter.timer
+    enabled: true
+    state: started

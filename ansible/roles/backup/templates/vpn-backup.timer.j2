@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule VPN platform backups
+
+[Timer]
+OnCalendar=*-*-* {{ backup_daily_time }}:00
+Persistent=true
+Unit=vpn-backup.service
+
+[Install]
+WantedBy=timers.target

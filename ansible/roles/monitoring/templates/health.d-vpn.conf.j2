@@ -1,0 +1,32 @@
+# Managed by Ansible
+
+{#- Generate RTT alarms -#}
+{% for target in netdata_latency_targets %}
+{%   set safe = target | regex_replace('[^a-zA-Z0-9_.-]', '_') %}
+alarm: vpn_peer_rtt_{{ safe }}
+    on: fping.{{ safe }}
+    dimension: ms
+    lookup: average -5m unaligned of ms
+    warn: $this > {{ netdata_rtt_warn_ms }}
+    crit: $this > {{ netdata_rtt_crit_ms }}
+    info: "RTT degradation detected for {{ target }}"
+    to: {{ netdata_alarm_role }}
+
+alarm: vpn_peer_loss_{{ safe }}
+    on: fping.{{ safe }}
+    dimension: loss
+    lookup: max -1m of percentage
+    warn: $this > 50
+    crit: $this > 80
+    info: "Packet loss detected for {{ target }}"
+    to: {{ netdata_alarm_role }}
+{% endfor %}
+
+alarm: provisioner_config_errors
+    on: statsd.provisioner_provision_error
+    dimension: value
+    lookup: absolute -5m of value
+    warn: $this > 0
+    crit: $this > 5
+    info: "Provisioning errors detected on node"
+    to: {{ netdata_alarm_role }}

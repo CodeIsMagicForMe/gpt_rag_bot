@@ -1,0 +1,107 @@
+---
+- name: Harden SSH configuration
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config.d/99-hardening.conf
+    create: true
+    block: |
+      Port {{ ssh_port }}
+      PermitRootLogin prohibit-password
+      PasswordAuthentication no
+      AuthenticationMethods publickey,keyboard-interactive
+      KbdInteractiveAuthentication yes
+      ChallengeResponseAuthentication yes
+      UsePAM yes
+      AllowTcpForwarding yes
+      X11Forwarding no
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+  notify: Restart sshd
+
+- name: Ensure sshd includes DropIn directory
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^Include /etc/ssh/sshd_config.d/\*.conf'
+    line: 'Include /etc/ssh/sshd_config.d/*.conf'
+  notify: Restart sshd
+
+- name: Configure fail2ban jail local overrides
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.d/ansible.local
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Reset UFW rules
+  community.general.ufw:
+    state: reset
+
+- name: Configure allowed UFW rules
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+  loop: "{{ ufw_rules_allow }}"
+
+- name: Enable default deny incoming policy
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Enable default allow outgoing policy
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Enable UFW firewall
+  community.general.ufw:
+    state: enabled
+
+- name: Ensure Google Authenticator package is installed
+  ansible.builtin.apt:
+    name: libpam-google-authenticator
+    state: present
+    update_cache: true
+
+- name: Enforce Google Authenticator PAM configuration
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sshd
+    insertafter: '^# Standard Un\\*x authentication\\.$'
+    line: 'auth required pam_google_authenticator.so'
+    state: present
+  notify: Restart sshd
+
+- name: Configure unattended upgrades
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure unattended upgrades periodic settings
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy Google Authenticator secret for admin user
+  ansible.builtin.copy:
+    dest: "/home/{{ admin_user }}/.google_authenticator"
+    content: "{{ admin_totp_secret }}"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: '0400'
+  when: admin_totp_secret is defined

@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule journald backups to object storage
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec={{ rclone_backup_interval }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

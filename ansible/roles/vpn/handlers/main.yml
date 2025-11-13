@@ -1,0 +1,19 @@
+---
+- name: Restart wireguard
+  ansible.builtin.service:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: restarted
+
+- name: Restart openvpn
+  ansible.builtin.service:
+    name: openvpn-server@server
+    state: restarted
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart smartdns
+  ansible.builtin.service:
+    name: smartdns
+    state: restarted

@@ -1,0 +1,11 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart compose services
+  ansible.builtin.command:
+    cmd: "/usr/bin/docker compose --file {{ services_compose_dir }}/docker-compose.yml up --detach"
+  register: compose_result
+  changed_when: false
+  failed_when: compose_result.rc != 0

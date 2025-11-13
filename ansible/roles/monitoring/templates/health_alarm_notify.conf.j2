@@ -1,0 +1,6 @@
+# Managed by Ansible
+SEND_TELEGRAM={{ 'YES' if netdata_telegram_enabled else 'NO' }}
+DEFAULT_RECIPIENT_TELEGRAM="{{ netdata_telegram_room_id }}"
+TELEGRAM_BOT_TOKEN="{{ netdata_telegram_bot_token }}"
+role_recipients_{{ netdata_alarm_role }}="{{ netdata_telegram_room_id }}"
+defaults = {{ netdata_health_alarm }}

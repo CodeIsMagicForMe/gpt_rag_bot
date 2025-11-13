@@ -1,0 +1,10 @@
+// Managed by Ansible
+Unattended-Upgrade::Origins-Pattern {
+{% for origin in unattended_upgrades_origins %}
+"{{ origin }}";
+{% endfor %}
+};
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:30";
+Unattended-Upgrade::Mail "";
+Unattended-Upgrade::MailOnlyOnError "true";

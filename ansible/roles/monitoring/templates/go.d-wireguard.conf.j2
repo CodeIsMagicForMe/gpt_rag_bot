@@ -1,0 +1,8 @@
+update_every: 2
+
+jobs:
+{% for interface in netdata_wireguard_interfaces %}
+  - name: "{{ interface }}"
+    interface: "{{ interface }}"
+    run_on_missing: stop
+{% endfor %}

@@ -1,0 +1,8 @@
+[Unit]
+Description=Fortnightly VPN backup restore validation
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/vpn-backup-restore.sh

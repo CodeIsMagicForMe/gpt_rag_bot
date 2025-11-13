@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""Collect anonymised VPN telemetry for WireGuard and OpenVPN."""
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+import pathlib
+import subprocess
+from typing import Any, Dict, List
+
+LOG_DIR = pathlib.Path("/var/log/vpn")
+WIREGUARD_INTERFACE = "{{ wireguard_interface }}"
+OPENVPN_STATUS = pathlib.Path("{{ netdata_openvpn_status_log }}")
+
+
+def _hash(value: str) -> str:
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return digest[:16]
+
+
+def _safe_endpoint(value: str | None) -> str | None:
+    if not value or value in {"(none)", "UNDEF"}:
+        return None
+    host = value.split(":", 1)[0]
+    return _hash(host)
+
+
+def collect_wireguard() -> List[Dict[str, Any]]:
+    try:
+        raw = subprocess.check_output(["wg", "show", WIREGUARD_INTERFACE, "dump"], text=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+
+    peers: List[Dict[str, Any]] = []
+    for line in raw.strip().splitlines()[1:]:
+        fields = line.split("\t")
+        if len(fields) < 9:
+            continue
+        public_key, _psk, endpoint, allowed_ips, latest_hs, rx, tx, *_rest = fields
+        peer: Dict[str, Any] = {
+            "peer": _hash(public_key),
+            "endpoint": _safe_endpoint(endpoint),
+            "allowed": [_hash(ip.strip()) for ip in allowed_ips.split(",") if ip.strip()],
+            "latest_handshake": int(latest_hs or 0),
+            "rx_bytes": int(rx or 0),
+            "tx_bytes": int(tx or 0),
+        }
+        peers.append(peer)
+    return peers
+
+
+def collect_openvpn() -> List[Dict[str, Any]]:
+    if not OPENVPN_STATUS.exists():
+        return []
+
+    clients: List[Dict[str, Any]] = []
+    try:
+        lines = OPENVPN_STATUS.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError:
+        return []
+
+    for line in lines:
+        if not line.startswith("CLIENT_LIST"):
+            continue
+        parts = line.split(",")
+        if len(parts) < 6:
+            continue
+        common_name = parts[1]
+        real_address = parts[2]
+        virtual_address = parts[3] if len(parts) > 3 else ""
+        bytes_received = parts[4] if len(parts) > 4 else "0"
+        bytes_sent = parts[5] if len(parts) > 5 else "0"
+        connected_since = parts[6] if len(parts) > 6 else ""
+
+        client = {
+            "peer": _hash(common_name),
+            "endpoint": _safe_endpoint(real_address),
+            "virtual_address": _hash(virtual_address) if virtual_address else None,
+            "bytes_received": int(bytes_received or 0),
+            "bytes_sent": int(bytes_sent or 0),
+            "connected_since": connected_since,
+        }
+        clients.append(client)
+    return clients
+
+
+def main() -> None:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "timestamp": dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat(),
+        "wireguard": collect_wireguard(),
+        "openvpn": collect_openvpn(),
+    }
+    log_file = LOG_DIR / "vpn-telemetry.log"
+    with log_file.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(payload, separators=(",", ":")) + "\n")
+
+
+if __name__ == "__main__":
+    main()
