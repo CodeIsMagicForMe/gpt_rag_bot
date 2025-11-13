@@ -1,4 +1,10 @@
 ---
+environment: dev
+yandex_lockbox_secret_ids:
+  dev: ""
+  stage: ""
+  prod: ""
+
 admin_user: deploy
 admin_groups:
   - sudo

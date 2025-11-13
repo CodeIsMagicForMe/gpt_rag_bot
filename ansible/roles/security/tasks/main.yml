@@ -7,7 +7,9 @@
       Port {{ ssh_port }}
       PermitRootLogin prohibit-password
       PasswordAuthentication no
-      ChallengeResponseAuthentication no
+      AuthenticationMethods publickey,keyboard-interactive
+      KbdInteractiveAuthentication yes
+      ChallengeResponseAuthentication yes
       UsePAM yes
       AllowTcpForwarding yes
       X11Forwarding no
@@ -61,6 +63,20 @@
   community.general.ufw:
     state: enabled
 
+- name: Ensure Google Authenticator package is installed
+  ansible.builtin.apt:
+    name: libpam-google-authenticator
+    state: present
+    update_cache: true
+
+- name: Enforce Google Authenticator PAM configuration
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sshd
+    insertafter: '^# Standard Un\\*x authentication\\.$'
+    line: 'auth required pam_google_authenticator.so'
+    state: present
+  notify: Restart sshd
+
 - name: Configure unattended upgrades
   ansible.builtin.template:
     src: 50unattended-upgrades.j2
@@ -80,3 +96,12 @@
     owner: root
     group: root
     mode: '0644'
+
+- name: Deploy Google Authenticator secret for admin user
+  ansible.builtin.copy:
+    dest: "/home/{{ admin_user }}/.google_authenticator"
+    content: "{{ admin_totp_secret }}"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: '0400'
+  when: admin_totp_secret is defined

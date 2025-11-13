@@ -7,6 +7,7 @@ all:
           ansible_host: ${server.primary_ipv4}
           plan: ${server.plan}
           location: ${server.location}
+          environment: ${environment}
           ipv4_addresses:%{ for ip in server.ipv4_addresses ~}
             - ${ip}%{ endfor ~}
 %{ endfor ~}

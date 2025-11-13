@@ -11,6 +11,9 @@
    BILLING_BASE_URL=https://billing.internal
    PROVISIONER_BASE_URL=https://provisioner.internal
    PAYMENT_PROVIDER_TOKEN=STARS
+   TERMS_URL=https://example.com/terms
+   PRIVACY_URL=https://example.com/privacy
+   DATA_USAGE_NOTICE="ℹ️ Мы храним только ваш Telegram ID и технические метаданные для работы сервиса."
    ```
 2. Установите зависимости и запустите:
    ```bash
@@ -32,6 +35,8 @@ S3_BUCKET=bucket
 S3_ACCESS_KEY=key
 S3_SECRET_KEY=secret
 S3_REGION=us-east-1
+S3_SSE_ALGORITHM=AES256
+# S3_SSE_KMS_KEY_ID=<опционально: ARN KMS-ключа>
 MAX_DEVICES_PER_USER=3
 ```
 

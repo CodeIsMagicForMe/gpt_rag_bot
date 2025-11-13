@@ -7,3 +7,8 @@ output "ansible_inventory_file" {
   description = "Path of the generated Ansible inventory file"
   value       = local_file.ansible_inventory.filename
 }
+
+output "environment" {
+  description = "Name of the selected environment"
+  value       = var.environment
+}

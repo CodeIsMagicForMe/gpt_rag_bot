@@ -15,6 +15,8 @@ class ProvisionerSettings(BaseSettings):
     s3_region: str = Field("us-east-1", alias="S3_REGION")
     s3_endpoint_url: Optional[str] = Field(None, alias="S3_ENDPOINT_URL")
     s3_presign_ttl: int = Field(900, alias="S3_PRESIGN_TTL", ge=60)
+    s3_sse_algorithm: str = Field("AES256", alias="S3_SSE_ALGORITHM")
+    s3_sse_kms_key_id: Optional[str] = Field(None, alias="S3_SSE_KMS_KEY_ID")
     statsd_host: str = Field("localhost", alias="STATSD_HOST")
     statsd_port: int = Field(8125, alias="STATSD_PORT")
     statsd_prefix: str = Field("provisioner", alias="STATSD_PREFIX")

@@ -59,6 +59,8 @@ def create_router(config: Config, billing: BillingAPI, provisioner: ProvisionerA
 def register_common_handlers(router: Router) -> None:
     router.message.register(cmd_start, CommandStart())
     router.message.register(request_trial_command, Command("trial"))
+    router.message.register(show_terms_command, Command("terms"))
+    router.message.register(show_privacy_command, Command("privacy"))
     router.message.register(handle_support_subject, SupportTicket.waiting_subject)
     router.message.register(handle_support_description, SupportTicket.waiting_description)
 
@@ -72,10 +74,13 @@ def register_common_handlers(router: Router) -> None:
 
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.set_state(MenuState.main)
-    await message.answer(
+    ctx = _require_context()
+    greeting_lines = [
         "👋 Привет! Я помогу управлять подпиской. Выберите действие:",
-        reply_markup=main_menu_kb(),
-    )
+        "",
+        ctx.config.data_usage_notice,
+    ]
+    await message.answer("\n".join(greeting_lines), reply_markup=main_menu_kb())
 
 
 async def handle_menu_callback(callback: CallbackQuery, state: FSMContext) -> None:
@@ -89,6 +94,10 @@ async def handle_menu_callback(callback: CallbackQuery, state: FSMContext) -> No
         await show_faq(callback.message, state)
     elif action is MenuAction.SUPPORT:
         await start_support_flow(callback.message, state)
+    elif action is MenuAction.TERMS:
+        await show_terms(callback.message, state)
+    elif action is MenuAction.PRIVACY:
+        await show_privacy(callback.message, state)
     await callback.answer()
 
 
@@ -102,13 +111,46 @@ async def request_trial_command(message: Message, state: FSMContext) -> None:
     await _handle_trial(message, state)
 
 
+async def show_terms(message: Message, state: FSMContext) -> None:
+    await state.set_state(MenuState.main)
+    config = _require_context().config
+    text = (
+        "📄 <b>Условия использования</b>\n"
+        f"{config.terms_url}\n\n"
+        f"{config.data_usage_notice}"
+    )
+    await message.answer(text, reply_markup=main_menu_kb(), parse_mode=ParseMode.HTML)
+
+
+async def show_privacy(message: Message, state: FSMContext) -> None:
+    await state.set_state(MenuState.main)
+    config = _require_context().config
+    text = (
+        "🔐 <b>Политика конфиденциальности</b>\n"
+        f"{config.privacy_url}\n\n"
+        f"{config.data_usage_notice}"
+    )
+    await message.answer(text, reply_markup=main_menu_kb(), parse_mode=ParseMode.HTML)
+
+
+async def show_terms_command(message: Message, state: FSMContext) -> None:
+    await show_terms(message, state)
+
+
+async def show_privacy_command(message: Message, state: FSMContext) -> None:
+    await show_privacy(message, state)
+
+
 async def _handle_trial(message: Message, state: FSMContext) -> None:
     await state.set_state(MenuState.main)
     ctx = _require_context()
     try:
         info = await ctx.billing.start_trial(message.from_user.id)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("Trial request failed")
+        logger.exception(
+            "Trial request failed",
+            extra={"tg_id": message.from_user.id, "error_type": type(exc).__name__},
+        )
         await message.answer("Не удалось выдать trial. Попробуйте позже.")
         return
     status_text = "Trial активирован ✅" if info.activated else "Trial уже был активирован"
@@ -124,8 +166,11 @@ async def show_cabinet(message: Message, state: FSMContext) -> None:
     ctx = _require_context()
     try:
         status = await ctx.billing.subscription_status(message.from_user.id)
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to fetch subscription status")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "Failed to fetch subscription status",
+            extra={"tg_id": message.from_user.id, "error_type": type(exc).__name__},
+        )
         await message.answer("Не удалось получить статус подписки", reply_markup=main_menu_kb())
         return
 
@@ -183,8 +228,11 @@ async def send_provision(message: Message, node: Optional[str]) -> None:
     except APIClientError as exc:
         await message.answer(str(exc))
         return
-    except Exception:  # noqa: BLE001
-        logger.exception("Provision request failed")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "Provision request failed",
+            extra={"tg_id": message.from_user.id, "error_type": type(exc).__name__, "node": node},
+        )
         await message.answer("Не удалось получить конфиг. Попробуйте позже.")
         return
 
@@ -235,8 +283,15 @@ async def process_successful_payment(message: Message, state: FSMContext) -> Non
             stars_tx_id=stars_tx_id,
             payload=payment.invoice_payload,
         )
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to confirm payment")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "Failed to confirm payment",
+            extra={
+                "tg_id": message.from_user.id,
+                "stars_tx_id": stars_tx_id,
+                "error_type": type(exc).__name__,
+            },
+        )
         await message.answer("Платёж получен, но не удалось подтвердить его в биллинге. Поддержка уже уведомлена.")
         await message.bot.send_message(
             ctx.config.admin_chat_id,

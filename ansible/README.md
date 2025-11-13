@@ -10,14 +10,25 @@ This directory contains the automation required to provision and configure VPN n
    ansible-galaxy collection install -r requirements.yml
    ```
 
-2. Adjust variables in `group_vars/all.yml` to match your environment (SSH keys, VPN peers, Telegram tokens, Rclone credentials, container images, etc.).
+2. Adjust variables in `group_vars/all.yml` to match your environment:
+   - Set `environment` to `dev`, `stage`, or `prod`.
+   - Fill in `yandex_lockbox_secret_ids` with the Lockbox secret IDs for each environment.  Each secret must contain entries for `admin_ssh_keys`, `admin_totp_secret`, `bot_token`, `billing_database_url`, `provisioner_endpoint`, `telegram_bot_token`, and `telegram_chat_id`.
+   - Provide non-secret defaults (VPN peers, container images, etc.).
 
-3. Update the inventory at `inventory/hosts.yml` with the actual public IPv4 addresses of your ishosting Medium servers.
+3. Update the inventory at `inventory/hosts.yml` with the actual public IPv4 addresses of your ishosting Medium servers (or use the Terraform-generated inventory at `inventory/generated_hosts.yml`).
 
-4. Run the playbook:
+4. Export a Yandex Cloud token or service-account key so that the `community.yandex_cloud` collection can retrieve secrets:
 
    ```bash
-   ansible-playbook -i inventory/hosts.yml site.yml
+   export YC_TOKEN="$(yc iam create-token)"
+   # or
+   export YC_SERVICE_ACCOUNT_KEY_FILE=/path/to/key.json
+   ```
+
+5. Run the playbook:
+
+   ```bash
+   ansible-playbook -i inventory/hosts.yml site.yml -e environment=prod
    ```
 
 The playbook is idempotent and can be re-run at any time to apply configuration drift corrections.

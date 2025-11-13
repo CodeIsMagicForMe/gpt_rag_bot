@@ -11,6 +11,8 @@ class MenuAction(str, Enum):
     CABINET = "cabinet"
     FAQ = "faq"
     SUPPORT = "support"
+    TERMS = "terms"
+    PRIVACY = "privacy"
 
 
 class CabinetAction(str, Enum):
@@ -31,7 +33,9 @@ def main_menu_kb() -> InlineKeyboardMarkup:
     builder.button(text="👤 Личный кабинет", callback_data=f"menu:{MenuAction.CABINET.value}")
     builder.button(text="ℹ️ FAQ", callback_data=f"menu:{MenuAction.FAQ.value}")
     builder.button(text="🆘 Поддержка", callback_data=f"menu:{MenuAction.SUPPORT.value}")
-    builder.adjust(2)
+    builder.button(text="📄 Условия", callback_data=f"menu:{MenuAction.TERMS.value}")
+    builder.button(text="🔐 Конфиденциальность", callback_data=f"menu:{MenuAction.PRIVACY.value}")
+    builder.adjust(2, 2, 2)
     return builder.as_markup()
 
 

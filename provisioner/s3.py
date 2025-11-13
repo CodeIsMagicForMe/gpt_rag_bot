@@ -20,6 +20,8 @@ class S3Uploader:
         region: str,
         presign_ttl: int,
         endpoint_url: Optional[str] = None,
+        sse_algorithm: Optional[str] = None,
+        sse_kms_key_id: Optional[str] = None,
     ) -> None:
         session = boto3.session.Session()
         self.client = session.client(
@@ -31,10 +33,22 @@ class S3Uploader:
         )
         self.bucket = bucket
         self.presign_ttl = presign_ttl
+        self._sse_params: dict[str, str] = {}
+        if sse_algorithm:
+            self._sse_params["ServerSideEncryption"] = sse_algorithm
+        if sse_kms_key_id:
+            self._sse_params["SSEKMSKeyId"] = sse_kms_key_id
 
     def upload_bytes(self, key: str, data: bytes, *, content_type: str) -> None:
         try:
-            self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
+            params = {
+                "Bucket": self.bucket,
+                "Key": key,
+                "Body": data,
+                "ContentType": content_type,
+            }
+            params.update(self._sse_params)
+            self.client.put_object(**params)
         except (BotoCoreError, ClientError):
             logger.exception("Failed to upload %s to S3", key)
             raise
