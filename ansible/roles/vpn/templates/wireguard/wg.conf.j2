@@ -1,0 +1,15 @@
+[Interface]
+Address = {{ wireguard_address }}
+ListenPort = {{ wireguard_listen_port }}
+PrivateKey = {{ wireguard_private_key }}
+PostUp = ufw route allow in on {{ wireguard_interface }} out on {{ wireguard_interface }}
+PostDown = ufw route delete allow in on {{ wireguard_interface }} out on {{ wireguard_interface }}
+
+{% for peer in wireguard_peers %}
+[Peer]
+PublicKey = {{ peer.public_key }}
+{% if peer.preshared_key is defined and peer.preshared_key %}PresharedKey = {{ peer.preshared_key }}
+{% endif %}AllowedIPs = {{ peer.allowed_ips | join(',') }}
+PersistentKeepalive = {{ peer.keepalive | default(25) }}
+{% if peer.endpoint is defined %}Endpoint = {{ peer.endpoint }}
+{% endif %}{% endfor %}

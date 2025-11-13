@@ -1,0 +1,14 @@
+[DEFAULT]
+bantime = 1h
+findtime = 10m
+maxretry = 5
+backend = systemd
+
+{% for jail in fail2ban_jails %}
+[{{ jail.name }}]
+enabled = {{ 'true' if jail.enabled else 'false' }}
+port = {{ jail.port }}
+filter = {{ jail.filter }}
+maxretry = {{ jail.maxretry | default(5) }}
+bantime = {{ jail.bantime | default('1h') }}
+{% endfor %}

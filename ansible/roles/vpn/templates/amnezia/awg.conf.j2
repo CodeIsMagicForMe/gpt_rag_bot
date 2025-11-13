@@ -1,0 +1,20 @@
+interface:
+  name: {{ amneziawg_interface }}
+  listen_port: {{ amneziawg_port }}
+  address: {{ amneziawg_address }}
+  private_key: {{ amneziawg_private_key }}
+{% if amneziawg_peers | length == 0 %}
+peers: []
+{% else %}
+peers:
+{% for peer in amneziawg_peers %}
+  - public_key: {{ peer.public_key }}
+    allowed_ips: {{ peer.allowed_ips | join(',') }}
+{% if peer.preshared_key is defined and peer.preshared_key %}
+    preshared_key: {{ peer.preshared_key }}
+{% endif %}
+{% if peer.endpoint is defined %}
+    endpoint: {{ peer.endpoint }}
+{% endif %}
+{% endfor %}
+{% endif %}

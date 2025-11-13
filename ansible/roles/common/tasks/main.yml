@@ -1,0 +1,42 @@
+---
+- name: Ensure apt sources list uses preferred mirror
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list
+    regexp: 'http://[^ ]+'
+    replace: "{{ apt_mirror }}"
+
+- name: Ensure base packages are present
+  ansible.builtin.apt:
+    name: "{{ packages_common }}"
+    state: present
+    update_cache: true
+
+- name: Ensure admin group exists
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ admin_groups }}"
+
+- name: Ensure admin user exists
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    shell: "{{ admin_shell }}"
+    groups: "{{ admin_groups }}"
+    append: true
+    create_home: true
+    state: present
+
+- name: Deploy authorized SSH keys for admin user
+  ansible.builtin.authorized_key:
+    user: "{{ admin_user }}"
+    state: present
+    key: "{{ item }}"
+  loop: "{{ admin_ssh_keys }}"
+  when: admin_ssh_keys | length > 0
+
+- name: Configure journald persistent storage
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: '^Storage='
+    line: "Storage={{ journald_storage }}"
+  notify: Restart journald

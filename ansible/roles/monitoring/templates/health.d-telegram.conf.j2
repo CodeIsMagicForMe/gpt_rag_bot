@@ -1,0 +1,8 @@
+# Managed by Ansible
+alarm: telegram_status
+on: netdata.server_status
+lookup: average -1m unaligned absolute of collected_value
+units: status
+every: 1m
+warn: $status != 'up'
+to: {{ netdata_alarm_role }}

@@ -1,0 +1,106 @@
+---
+- name: Ensure smartdns repository is available
+  ansible.builtin.apt_repository:
+    repo: ppa:pymumu/ppa
+    state: present
+
+- name: Install VPN and DNS packages
+  ansible.builtin.apt:
+    name:
+      - wireguard
+      - wireguard-tools
+      - openvpn
+      - smartdns
+    state: present
+    update_cache: true
+
+- name: Enable IP forwarding
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: true
+
+- name: Deploy WireGuard configuration
+  ansible.builtin.template:
+    src: wireguard/wg.conf.j2
+    dest: "/etc/wireguard/{{ wireguard_interface }}.conf"
+    owner: root
+    group: root
+    mode: '0600'
+  when: wireguard_private_key | length > 0
+  notify: Restart wireguard
+
+- name: Ensure wireguard service enabled
+  ansible.builtin.service:
+    name: "wg-quick@{{ wireguard_interface }}"
+    enabled: true
+    state: started
+  when: wireguard_private_key | length > 0
+
+- name: Deploy OpenVPN server configuration
+  ansible.builtin.template:
+    src: openvpn/server.conf.j2
+    dest: /etc/openvpn/server/server.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart openvpn
+
+- name: Ensure OpenVPN service enabled
+  ansible.builtin.service:
+    name: openvpn-server@server
+    enabled: true
+    state: started
+
+- name: Create AmneziaWG directory
+  ansible.builtin.file:
+    path: /opt/amneziawg
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Download AmneziaWG binary
+  ansible.builtin.get_url:
+    url: "{{ amneziawg_download_url }}"
+    dest: /opt/amneziawg/amneziawg
+    mode: '0755'
+
+- name: Deploy AmneziaWG configuration
+  ansible.builtin.template:
+    src: amnezia/awg.conf.j2
+    dest: /opt/amneziawg/config.yaml
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Install AmneziaWG systemd service
+  ansible.builtin.template:
+    src: amnezia/amneziawg.service.j2
+    dest: /etc/systemd/system/amneziawg.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Ensure AmneziaWG service enabled
+  ansible.builtin.service:
+    name: amneziawg
+    enabled: true
+    state: started
+
+- name: Deploy SmartDNS configuration
+  ansible.builtin.template:
+    src: smartdns/smartdns.conf.j2
+    dest: /etc/smartdns/smartdns.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart smartdns
+
+- name: Ensure SmartDNS service enabled
+  ansible.builtin.service:
+    name: smartdns
+    enabled: true
+    state: started

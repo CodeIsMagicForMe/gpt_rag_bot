@@ -1,0 +1,49 @@
+---
+- name: Ensure compose directory exists
+  ansible.builtin.file:
+    path: "{{ services_compose_dir }}"
+    state: directory
+    owner: "{{ services_compose_user }}"
+    group: "{{ services_compose_user }}"
+    mode: '0755'
+
+- name: Deploy docker-compose definition
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ services_compose_dir }}/docker-compose.yml"
+    owner: "{{ services_compose_user }}"
+    group: "{{ services_compose_user }}"
+    mode: '0644'
+  notify: Restart compose services
+
+- name: Render shared environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ services_compose_dir }}/.env"
+    owner: "{{ services_compose_user }}"
+    group: "{{ services_compose_user }}"
+    mode: '0600'
+  notify: Restart compose services
+
+- name: Install service unit files
+  ansible.builtin.template:
+    src: compose-service.service.j2
+    dest: "/etc/systemd/system/{{ item }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - bot
+    - billing
+    - provisioner
+  notify: Reload systemd
+
+- name: Ensure service units are enabled
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - bot
+    - billing
+    - provisioner

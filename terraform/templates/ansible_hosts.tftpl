@@ -1,0 +1,12 @@
+all:
+  children:
+    vpn_servers:
+      hosts:
+%{ for hostname, server in servers ~}
+        ${hostname}:
+          ansible_host: ${server.primary_ipv4}
+          plan: ${server.plan}
+          location: ${server.location}
+          ipv4_addresses:%{ for ip in server.ipv4_addresses ~}
+            - ${ip}%{ endfor ~}
+%{ endfor ~}

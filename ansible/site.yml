@@ -1,0 +1,14 @@
+---
+- name: Configure infrastructure nodes
+  hosts: vpn_servers
+  become: true
+  vars_files:
+    - group_vars/all.yml
+  roles:
+    - role: common
+    - role: security
+    - role: docker
+    - role: vpn
+    - role: services
+    - role: monitoring
+    - role: logging
